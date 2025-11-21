@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Soccer Real-time Scores — Multi-Game Concept</title>
+  <title>Soccer Real-time Scores — Multi‑Game Concept</title>
   <style>
     body{font-family:Inter,Arial;margin:0;background:#f4f6f9;color:#0f172a}
     .wrap{max-width:1200px;margin:0 auto;padding:20px}
@@ -27,7 +27,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>Soccer Real-time Scores Platform — Multi-Game Concept</h1>
+  <h1>Soccer Real-time Scores Platform — Multi‑Game Concept</h1>
   <p>This system allows multiple games to be running at the same time. Only <strong>admins</strong> can update scores. Parents and the public can view results live in real time.</p>
 
   <div class="tabs">
@@ -81,111 +81,67 @@
 </div>
 
 <script>
-  let matches = {};
+// --- JavaScript Logic Start
+let matches = JSON.parse(localStorage.getItem('matchesData')) || {
+  match1: { home: 0, away: 0, events: [] },
+  match2: { home: 0, away: 0, events: [] },
+  match3: { home: 0, away: 0, events: [] }
+};
 
-  function switchTab(tab){
-    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-    document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
-    document.querySelector('[onclick="switchTab(\''+tab+'\')"]').classList.add('active');
-    document.getElementById(tab).classList.add('active');
-    renderParentGames();
-    renderAdminOverview();
-    updateMatchDropdown();
-  }
+function saveData() {
+  localStorage.setItem('matchesData', JSON.stringify(matches));
+}
 
-  function createMatch(){
-    const name = document.getElementById('matchName').value;
-    if(!name){ alert('Enter match name'); return; }
-    if(matches[name]){ alert('Match already exists'); return; }
+function renderMatch(matchId) {
+  const match = matches[matchId];
+  const score = document.getElementById('score-display');
+  if (score) score.innerText = `${match.home} - ${match.away}`;
 
-    matches[name] = {
-      scoreA: 0,
-      scoreB: 0,
-      events: []
-    };
-    document.getElementById('matchName').value = '';
-    updateMatchDropdown();
-    renderParentGames();
-  }
-
-  function updateMatchDropdown(){
-    const sel = document.getElementById('matchSelect');
-    sel.innerHTML = '';
-    Object.keys(matches).forEach(m=>{
-      const opt = document.createElement('option');
-      opt.value = m;
-      opt.textContent = m;
-      sel.appendChild(opt);
-    });
-  }
-
-  function adminAddGoal(){
-    const match = document.getElementById('matchSelect').value;
-    if(!match){ alert('Create/select a match'); return; }
-
-    const t = document.getElementById('adminTeam').value;
-    const p = document.getElementById('adminPlayer').value;
-    const m = document.getElementById('adminMinute').value;
-    const a = document.getElementById('adminAssist').value;
-
-    if(!p || !m){ alert('Enter scorer and minute'); return; }
-
-    let data = matches[match];
-    if(t==='A') data.scoreA++; else data.scoreB++;
-
-    const ev = `⚽ Team ${t} — ${p} (${m}')${a ? ' — Assist: '+a : ''}`;
-    data.events.unshift(ev);
-
-    document.getElementById('adminPlayer').value='';
-    document.getElementById('adminMinute').value='';
-    document.getElementById('adminAssist').value='';
-
-    renderParentGames();
-    renderAdminOverview();
-  }
-
-  function renderParentGames(){
-    const container = document.getElementById('parentGames');
-    if(!container) return;
-    container.innerHTML = '';
-
-    Object.keys(matches).forEach(match=>{
-      const m = matches[match];
+  const feed = document.getElementById('event-feed');
+  if (feed) {
+    feed.innerHTML = '';
+    match.events.forEach(ev => {
       const div = document.createElement('div');
-      div.className = 'match-card';
-      div.innerHTML = `
-        <div class="match-header">${match}</div>
-        <div>Team A: <strong>${m.scoreA}</strong> — Team B: <strong>${m.scoreB}</strong></div>
-        <div style="margin-top:8px;color:#475569;font-size:14px">
-          ${m.events[0] ? m.events[0] : 'No events yet'}
-        </div>
-      `;
-      container.appendChild(div);
+      div.className = 'event';
+      div.innerText = `${ev.minute}' — ${ev.player} (${ev.team})${ev.assist ? ' assist: ' + ev.assist : ''}`;
+      feed.appendChild(div);
     });
   }
+}
 
-  function renderAdminOverview(){
-    const container = document.getElementById('adminOverview');
-    if(!container) return;
-    container.innerHTML = '';
+function addGoal() {
+  const matchId = document.getElementById('match-selector').value;
+  const team = document.getElementById('team-select').value;
+  const player = document.getElementById('goal-player').value;
+  const assist = document.getElementById('assist-player').value;
+  const minute = document.getElementById('goal-minute').value;
 
-    Object.keys(matches).forEach(match=>{
-      const m = matches[match];
-      const div = document.createElement('div');
-      div.className = 'match-card';
+  const match = matches[matchId];
+  match[team]++;
+  match.events.push({ team, player, assist, minute });
 
-      let eventsHTML = m.events.map(e=>`<div class='event'>${e}</div>`).join('');
+  saveData();
+  renderMatch(matchId);
+}
 
-      div.innerHTML = `
-        <div class="match-header">${match}</div>
-        <div>Team A: <strong>${m.scoreA}</strong> — Team B: <strong>${m.scoreB}</strong></div>
-        <h4>Events</h4>
-        ${eventsHTML || '<div class="event">No events yet</div>'}
-      `;
+function resetAll() {
+  if (!confirm('Are you sure you want to delete all match data?')) return;
 
-      container.appendChild(div);
-    });
-  }
+  matches = {
+    match1: { home: 0, away: 0, events: [] },
+    match2: { home: 0, away: 0, events: [] },
+    match3: { home: 0, away: 0, events: [] }
+  };
+
+  saveData();
+  renderMatch('match1');
+  alert('All results deleted and system reset.');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderMatch('match1');
+});
+// --- JavaScript Logic End
 </script>
 </body>
 </html>
