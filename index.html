@@ -3,11 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Soccer Real-time Scores — Concept Design</title>
+  <title>Soccer Real-time Scores — Multi-Game Concept</title>
   <style>
     body{font-family:Inter,Arial;margin:0;background:#f4f6f9;color:#0f172a}
-    .wrap{max-width:1100px;margin:32px auto;padding:20px}
+    .wrap{max-width:1200px;margin:0 auto;padding:20px}
     h1{margin:0 0 10px}
+    .tabs{display:flex;gap:12px;margin-bottom:20px}
+    .tab{padding:10px 16px;border-radius:8px;cursor:pointer;background:#e2e8f0;font-weight:600}
+    .tab.active{background:#0ea5e9;color:#fff}
+    .section{display:none}
+    .section.active{display:block}
     .card{background:#fff;padding:20px;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.06);margin-bottom:16px}
     .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
     table{width:100%;border-collapse:collapse;margin-top:12px}
@@ -15,90 +20,171 @@
     .btn{background:#0ea5e9;color:#fff;padding:10px 14px;border-radius:8px;border:none;margin-top:12px;cursor:pointer;font-weight:600}
     .goal-entry{display:flex;gap:8px;margin-bottom:8px}
     input,select{padding:8px;border-radius:6px;border:1px solid #d7e0ea;width:100%}
+    .match-card{border:1px solid #dbe6f3;border-radius:10px;padding:12px;background:#fff}
+    .match-header{font-weight:700;margin-bottom:6px}
+    .event{font-size:14px;margin-bottom:4px}
   </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Soccer Real-time Scores Platform — Concept Design</h1>
-  <p>This concept design shows how individuals and organisations can record soccer match events — including goals, who scored them, and live match status — with real-time updates.</p>
+  <h1>Soccer Real-time Scores Platform — Multi-Game Concept</h1>
+  <p>This system allows multiple games to be running at the same time. Only <strong>admins</strong> can update scores. Parents and the public can view results live in real time.</p>
 
-  <div class="card">
-    <h2>Live Match Dashboard</h2>
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('parent')">Parent View</div>
+    <div class="tab" onclick="switchTab('admin')">Admin View</div>
+  </div>
 
-    <div class="grid">
-      <div>
-        <h3>Scoreboard</h3>
-        <table>
-          <tr><th>Team</th><th>Score</th></tr>
-          <tr><td>Team A</td><td id="scoreA">0</td></tr>
-          <tr><td>Team B</td><td id="scoreB">0</td></tr>
-        </table>
-        <p style="color:#64748b;font-size:14px">This section updates automatically as goals are recorded.</p>
-      </div>
-      <div>
-        <h3>Recent Events</h3>
-        <div id="events" style="font-size:14px;color:#334155">No events yet.</div>
-      </div>
+  <!-- PARENT VIEW -->
+  <div id="parent" class="section active">
+    <div class="card">
+      <h2>Live Games</h2>
+      <p style="color:#64748b;font-size:14px;margin-top:0">Parents can see all active matches and click them to track goals in real time.</p>
+
+      <div id="parentGames" class="grid"></div>
     </div>
   </div>
 
-  <div class="card">
-    <h2>Record Goal</h2>
-    <p style="color:#64748b;font-size:14px;margin-top:0">Admins or authorised team officials can quickly add goal details, including scorer, minute, and optional assist.</p>
+  <!-- ADMIN VIEW -->
+  <div id="admin" class="section">
+    <div class="card">
+      <h2>Admin — Manage Games</h2>
+      <p style="color:#64748b;font-size:14px;margin-top:0">Admins can add scores, assists, and track multiple games at once.</p>
 
-    <div class="goal-entry">
-      <select id="team">
-        <option value="A">Team A</option>
-        <option value="B">Team B</option>
-      </select>
-      <input id="player" placeholder="Goal scorer name" />
-      <input id="minute" placeholder="Minute (e.g. 42)" />
-      <input id="assist" placeholder="Assist (optional)" />
+      <h3>Create / Select a Match</h3>
+      <div class="goal-entry">
+        <input id="matchName" placeholder="Match name (e.g. U10 Blue vs Red)" />
+        <button class="btn" onclick="createMatch()">Create Match</button>
+      </div>
+
+      <select id="matchSelect"></select>
+
+      <h3 style="margin-top:16px">Record Goal</h3>
+      <div class="goal-entry">
+        <select id="adminTeam">
+          <option value="A">Team A</option>
+          <option value="B">Team B</option>
+        </select>
+        <input id="adminPlayer" placeholder="Goal scorer" />
+        <input id="adminMinute" placeholder="Minute" />
+        <input id="adminAssist" placeholder="Assist (optional)" />
+      </div>
+
+      <button class="btn" onclick="adminAddGoal()">Add Goal</button>
     </div>
 
-    <button class="btn" onclick="addGoal()">Add Goal</button>
-  </div>
-
-  <div class="card">
-    <h2>Team & Player Stats</h2>
-    <table>
-      <tr><th>Player</th><th>Goals</th><th>Assists</th></tr>
-      <tr><td>Example Player</td><td>1</td><td>0</td></tr>
-    </table>
-  </div>
-
-  <div class="card">
-    <h2>How Real-time Updates Work</h2>
-    <ul>
-      <li>Goal data is submitted through secure custom forms.</li>
-      <li>Database stores player stats, match events, and timestamps.</li>
-      <li>Front-end receives updates via WebSocket or lightweight polling.</li>
-      <li>Participants and organisers see results live, without refresh.</li>
-    </ul>
+    <div class="card">
+      <h2>Admin — Match Overview</h2>
+      <div id="adminOverview"></div>
+    </div>
   </div>
 </div>
 
 <script>
-  let scoreA = 0;
-  let scoreB = 0;
-  const eventsDiv = document.getElementById('events');
+  let matches = {};
 
-  function addGoal(){
-    const t = document.getElementById('team').value;
-    const p = document.getElementById('player').value;
-    const m = document.getElementById('minute').value;
-    const a = document.getElementById('assist').value;
+  function switchTab(tab){
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+    document.querySelector('[onclick="switchTab(\''+tab+'\')"]').classList.add('active');
+    document.getElementById(tab).classList.add('active');
+    renderParentGames();
+    renderAdminOverview();
+    updateMatchDropdown();
+  }
 
-    if(!p || !m){ alert('Please enter scorer and minute'); return; }
+  function createMatch(){
+    const name = document.getElementById('matchName').value;
+    if(!name){ alert('Enter match name'); return; }
+    if(matches[name]){ alert('Match already exists'); return; }
 
-    if(t === 'A'){ scoreA++; document.getElementById('scoreA').innerText = scoreA; }
-    else{ scoreB++; document.getElementById('scoreB').innerText = scoreB; }
+    matches[name] = {
+      scoreA: 0,
+      scoreB: 0,
+      events: []
+    };
+    document.getElementById('matchName').value = '';
+    updateMatchDropdown();
+    renderParentGames();
+  }
 
-    const text = `⚽ Goal for Team ${t} — ${p} (${m}')${a ? ' — Assist: '+a : ''}`;
+  function updateMatchDropdown(){
+    const sel = document.getElementById('matchSelect');
+    sel.innerHTML = '';
+    Object.keys(matches).forEach(m=>{
+      const opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = m;
+      sel.appendChild(opt);
+    });
+  }
 
-    const div = document.createElement('div');
-    div.textContent = text;
-    eventsDiv.prepend(div);
+  function adminAddGoal(){
+    const match = document.getElementById('matchSelect').value;
+    if(!match){ alert('Create/select a match'); return; }
+
+    const t = document.getElementById('adminTeam').value;
+    const p = document.getElementById('adminPlayer').value;
+    const m = document.getElementById('adminMinute').value;
+    const a = document.getElementById('adminAssist').value;
+
+    if(!p || !m){ alert('Enter scorer and minute'); return; }
+
+    let data = matches[match];
+    if(t==='A') data.scoreA++; else data.scoreB++;
+
+    const ev = `⚽ Team ${t} — ${p} (${m}')${a ? ' — Assist: '+a : ''}`;
+    data.events.unshift(ev);
+
+    document.getElementById('adminPlayer').value='';
+    document.getElementById('adminMinute').value='';
+    document.getElementById('adminAssist').value='';
+
+    renderParentGames();
+    renderAdminOverview();
+  }
+
+  function renderParentGames(){
+    const container = document.getElementById('parentGames');
+    if(!container) return;
+    container.innerHTML = '';
+
+    Object.keys(matches).forEach(match=>{
+      const m = matches[match];
+      const div = document.createElement('div');
+      div.className = 'match-card';
+      div.innerHTML = `
+        <div class="match-header">${match}</div>
+        <div>Team A: <strong>${m.scoreA}</strong> — Team B: <strong>${m.scoreB}</strong></div>
+        <div style="margin-top:8px;color:#475569;font-size:14px">
+          ${m.events[0] ? m.events[0] : 'No events yet'}
+        </div>
+      `;
+      container.appendChild(div);
+    });
+  }
+
+  function renderAdminOverview(){
+    const container = document.getElementById('adminOverview');
+    if(!container) return;
+    container.innerHTML = '';
+
+    Object.keys(matches).forEach(match=>{
+      const m = matches[match];
+      const div = document.createElement('div');
+      div.className = 'match-card';
+
+      let eventsHTML = m.events.map(e=>`<div class='event'>${e}</div>`).join('');
+
+      div.innerHTML = `
+        <div class="match-header">${match}</div>
+        <div>Team A: <strong>${m.scoreA}</strong> — Team B: <strong>${m.scoreB}</strong></div>
+        <h4>Events</h4>
+        ${eventsHTML || '<div class="event">No events yet</div>'}
+      `;
+
+      container.appendChild(div);
+    });
   }
 </script>
 </body>
