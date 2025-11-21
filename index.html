@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Real‑time Scores — Concept</title>
+  <style>
+    :root{--bg:#f4f7fb;--card:#ffffff;--accent:#06b6d4;--muted:#6b7280}
+    *{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial;background:var(--bg);color:#0f172a}
+    .wrap{max-width:1200px;margin:28px auto;padding:20px}
+    header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+    h1{font-size:20px;margin:0}
+    .subtitle{color:var(--muted);font-size:13px}
+    .grid{display:grid;grid-template-columns:380px 1fr;gap:16px;margin-top:18px}
+    .card{background:var(--card);border-radius:12px;padding:14px;box-shadow:0 8px 30px rgba(2,6,23,0.04)}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    input,select,button{width:100%;padding:10px;border-radius:8px;border:1px solid #e6eef8;font-size:14px}
+    button{cursor:pointer;border:none;background:var(--accent);color:#fff;font-weight:700}
+    .small{font-size:13px;color:var(--muted)}
+    .form-row{margin-bottom:10px}
+    .live-badge{display:inline-block;background:rgba(6,182,212,0.12);color:var(--accent);padding:6px 10px;border-radius:999px;font-weight:700}
+    .results-table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{padding:10px 12px;border-bottom:1px solid #f1f6fb;text-align:left}
+    th{font-size:13px;color:var(--muted)}
+    .right{text-align:right}
+    .controls{display:flex;gap:8px}
+    .chart{height:140px;border-radius:8px;background:linear-gradient(90deg,#e6fbff,#f5fcff);display:flex;align-items:center;justify-content:center;color:rgba(2,6,23,0.12);font-weight:800}
+    .organiser{display:flex;flex-direction:column;gap:10px}
+    .flex{display:flex;gap:8px}
+    .pill{background:#f1f9fb;border-radius:8px;padding:6px 8px;font-weight:700}
+    footer{margin-top:18px;color:var(--muted);font-size:13px}
+    @media (max-width:900px){.grid{grid-template-columns:1fr} .wrap{padding:12px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Real‑time Scores — Concept</h1>
+        <div class="subtitle">Collect participant data, show live results to individuals & organisations</div>
+      </div>
+      <div style="text-align:right">
+        <div class="small">Prototype • Replace simulated real‑time with WebSocket server for production</div>
+      </div>
+    </header>
+
+    <main class="grid">
+      <!-- Left column: Submission form + organiser controls -->
+      <aside class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div class="live-badge" id="liveBadge">LIVE</div>
+            <div class="small" style="margin-top:6px">Submit a score (participant)</div>
+          </div>
+          <div class="small" id="lastUpdated">—</div>
+        </div>
+
+        <form id="scoreForm" style="margin-top:12px">
+          <div class="form-row">
+            <label for="name">Full name</label>
+            <input id="name" name="name" placeholder="Jane Doe" required />
+          </div>
+
+          <div class="form-row">
+            <label for="org">Organisation / Team (optional)</label>
+            <input id="org" name="org" placeholder="E.g. Riverside Club" />
+          </div>
+
+          <div class="form-row">
+            <label for="event">Event / Activity</label>
+            <select id="event" name="event">
+              <option value="sprint">100m Sprint</option>
+              <option value="enduro">Endurance Run</option>
+              <option value="swim">Swimming</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <label for="score">Score / Time</label>
+            <input id="score" name="score" placeholder="e.g. 12.34 or 78" required />
+          </div>
+
+          <div class="form-row controls">
+            <button type="submit">Submit score</button>
+            <button type="button" id="clearBtn" style="background:#eef2f3;color:#0b5560">Clear</button>
+          </div>
+        </form>
+
+        <div class="organiser" style="margin-top:12px">
+          <div class="small">Organiser controls</div>
+          <div class="flex">
+            <button id="toggleLive" style="background:#0b74c2">Pause Live</button>
+            <button id="exportCSV" style="background:#0a8f5b">Export CSV</button>
+            <button id="reset" style="background:#ef4444">Reset</button>
+          </div>
+          <div class="small" style="margin-top:8px">Note: This demo uses simulated live updates. Replace with WebSocket or server‑sent events in production.</div>
+        </div>
+      </aside>
+
+      <!-- Right column: Live results + dashboard -->
+      <section>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <strong>Live Results</strong>
+              <div class="small">Showing top 20 — auto updates</div>
+            </div>
+            <div class="pill" id="countPill">0 participants</div>
+          </div>
+
+          <div style="margin-top:12px">
+            <table class="results-table" id="results">
+              <thead>
+                <tr><th>Rank</th><th>Name</th><th>Org</th><th>Event</th><th class="right">Score</th><th class="right">Submitted</th></tr>
+              </thead>
+              <tbody>
+                <!-- Filled by JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <div style="display:flex;gap:12px;margin-top:12px;align-items:center">
+            <div style="flex:1">
+              <div class="small">Mini analytics</div>
+              <div class="chart">Leaderboard spark (concept)</div>
+            </div>
+            <div style="width:220px">
+              <div class="small">Filters</div>
+              <div style="display:flex;gap:8px;margin-top:8px"><input id="filterName" placeholder="Search name" /><input id="filterOrg" placeholder="Organisation" /></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <strong>Organiser dashboard</strong>
+          <div class="small" style="margin-top:8px">Quick metrics</div>
+          <div style="display:flex;gap:12px;margin-top:10px">
+            <div style="flex:1;padding:12px;border-radius:8px;background:#f7feff;text-align:center"><div style="font-size:18px;font-weight:800" id="metricTotal">0</div><div class="small">Total submissions</div></div>
+            <div style="flex:1;padding:12px;border-radius:8px;background:#fff8f3;text-align:center"><div style="font-size:18px;font-weight:800" id="metricEvents">0</div><div class="small">Active events</div></div>
+            <div style="flex:1;padding:12px;border-radius:8px;background:#f7f7ff;text-align:center"><div style="font-size:18px;font-weight:800" id="metricOrgs">0</div><div class="small">Organisations</div></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="small">This concept includes a participant submission form, live results table and organiser controls. For production: use secure authentication, HTTPS, server validation and a WebSocket or SSE service for real‑time updates.</div>
+    </footer>
+  </div>
+
+  <script>
+    // Simple demo: store submissions in-memory; simulate live updates
+    const submissions = [];
+    let live = true;
+    const resultsTbody = document.querySelector('#results tbody');
+    const countPill = document.getElementById('countPill');
+    const metricTotal = document.getElementById('metricTotal');
+    const metricEvents = document.getElementById('metricEvents');
+    const metricOrgs = document.getElementById('metricOrgs');
+    const lastUpdated = document.getElementById('lastUpdated');
+
+    function nowIso() { return new Date().toLocaleString(); }
+
+    // sort logic: numeric higher = better (change per event rules)
+    function sortAndRender() {
+      const filterName = document.getElementById('filterName').value.trim().toLowerCase();
+      const filterOrg = document.getElementById('filterOrg').value.trim().toLowerCase();
+      const rows = submissions.slice().sort((a,b)=>parseFloat(b.score)-parseFloat(a.score));
+      const top = rows.filter(r=>(!filterName||r.name.toLowerCase().includes(filterName)) && (!filterOrg||r.org.toLowerCase().includes(filterOrg))).slice(0,20);
+      resultsTbody.innerHTML = '';
+      top.forEach((r,i)=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${i+1}</td><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.org||'—')}</td><td>${escapeHtml(r.event)}</td><td class="right">${Number(r.score).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td><td class="right">${r.time}</td>`;
+        resultsTbody.appendChild(tr);
+      });
+      countPill.textContent = submissions.length + ' participants';
+      metricTotal.textContent = submissions.length;
+      metricEvents.textContent = new Set(submissions.map(s=>s.event)).size;
+      metricOrgs.textContent = new Set(submissions.map(s=>s.org||'')).size;
+      lastUpdated.textContent = 'Updated: ' + nowIso();
+    }
+
+    function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    document.getElementById('scoreForm').addEventListener('submit', e=>{
+      e.preventDefault();
+      const name = document.getElementById('name').value.trim();
+      const org = document.getElementById('org').value.trim();
+      const event = document.getElementById('event').value;
+      const score = document.getElementById('score').value.trim();
+      if(!name||!score) return alert('Please fill name and score');
+      const item = {name,org,event,score,time:nowIso()};
+      submissions.push(item);
+      // in production: POST to server API -> server broadcasts to sockets
+      sortAndRender();
+      e.target.reset();
+    });
+
+    document.getElementById('clearBtn').addEventListener('click', ()=>document.getElementById('scoreForm').reset());
+
+    document.getElementById('toggleLive').addEventListener('click', e=>{
+      live = !live; e.target.textContent = live ? 'Pause Live' : 'Resume Live';
+      document.getElementById('liveBadge').style.background = live ? 'rgba(6,182,212,0.12)' : 'rgba(128,128,128,0.08)';
+    });
+
+    document.getElementById('exportCSV').addEventListener('click', ()=>{
+      if(!submissions.length) return alert('No data');
+      const rows = [['Name','Org','Event','Score','Submitted']].concat(submissions.map(s=>[s.name,s.org,s.event,s.score,s.time]));
+      const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""') }"`).join(',')).join('\n');
+      const blob = new Blob([csv],{type:'text/csv'}); const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='scores.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('reset').addEventListener('click', ()=>{
+      if(confirm('Clear all submissions?')){ submissions.length = 0; sortAndRender(); }
+    });
+
+    document.getElementById('filterName').addEventListener('input', sortAndRender);
+    document.getElementById('filterOrg').addEventListener('input', sortAndRender);
+
+    // Simulate live updates from remote participants every 6s
+    setInterval(()=>{
+      if(!live) return;
+      // 30% chance to simulate a remote submission
+      if(Math.random()<0.3){
+        const sampleNames = ['Alex','Sam','Jordan','Taylor','Riley','Casey','Morgan','Jamie','Chris','Pat'];
+        const sampleOrgs = ['Riverside','North Club','Eastside','West End','City Squad'];
+        const sampleEvents = ['sprint','enduro','swim'];
+        const name = sampleNames[Math.floor(Math.random()*sampleNames.length)]+ ' ' + String(Math.floor(Math.random()*90)+10);
+        const org = sampleOrgs[Math.floor(Math.random()*sampleOrgs.length)];
+        const event = sampleEvents[Math.floor(Math.random()*sampleEvents.length)];
+        const score = (Math.random()*120).toFixed(2);
+        submissions.push({name,org,event,score,time:nowIso()});
+        sortAndRender();
+      }
+    },6000);
+
+    // initial render with mock data
+    ['Alice','Bob','Clara'].forEach((n,i)=>submissions.push({name:n,org:'Demo',event:'sprint',score:(100-i*5).toFixed(2),time:nowIso()}));
+    sortAndRender();
+  </script>
+</body>
+</html>
